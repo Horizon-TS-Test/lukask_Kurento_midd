@@ -11,7 +11,7 @@ el repositorio, este proceso permite instalar las dependencias necesarias de nod
 ### ARRANCAR EL SERVIDOR
 Una vez que las dependencias han sido instaladas procedemos a arrancar el server.
 
-Comando para compilar localmente.
+#### Comando para compilar localmente.
 - npm start 
-Comando para compilar dentro de nuestra red local.
+#### Comando para compilar dentro de nuestra red local.
 - npm start --host=0.0.0.0
