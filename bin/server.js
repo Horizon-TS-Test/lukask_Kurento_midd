@@ -97,9 +97,18 @@ function onListening() {
  *********** Configuración del servidor kurento ****
  ***************************************************/
 
- /*****************************
- ***** Global varibles *******
- *****************************/
+ /*****************************/
+ /***** Global varibles *******/
+ /*****************************/
+/**
+ * Formato del video.
+ */
+const FORMAT_VIDEO  = ".webm"
+/**
+ * Ruta de alojamiento.
+ */
+const PATH          = "file:///tmp/"
+
 var kurentoClient   = null;
 var idCounter       = 0;
 var candidatesQueue = {};
@@ -107,7 +116,6 @@ var presenter       = null;
 var viewers         = [];
 var noPresentTransmission = "Aun no existe ninguna transmici\u00f3n en linia, intentelo mas tarde";
 var presenters      = [];
-
 
 //Conectamos con los servidores.
 var argv = minimist(process.argv.slice(2), {
@@ -246,30 +254,9 @@ function getKurentoClient(callback){
                             + ", existe el siguiente error: " + error);
         }
         
-        kurentoClient = _kurentoClient;
         callback(null, kurentoClient);
     });
 }
-
-/**
- * Permite generar una clave unica, para identificadores de la transmicion.
- */
-/*function generateKeyUser(){
-
-    //Diccionario
-    var letters = new Array('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 
-                            'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '1', '2', '3', '4',
-                            '5', '6', '7', '8', '9', '0');
-    var keyWord = ''
-    for (var i = 0; i< 10; i++){
-        keyWord += letters[Math.floor(Math.random() * letters.length)];
-    }
-
-    //Encripta la clave
-    var keyUser = cryptoGenerate.encrypt(keyWord);
-    console.log("Id de user encriptado", keyUser)
-    return keyUser;
-}*/
 
 /**
  * Proceso para generar la transmicion. 
@@ -301,6 +288,7 @@ function startPresenter(sessionId, wss, sdpOffer, userId, callback){
         id : sessionId,
         userId: userId,
         pipeline : null,
+        recorder : null,
         webRtcEndpoint : null,
         ws : wss
     }
@@ -309,6 +297,8 @@ function startPresenter(sessionId, wss, sdpOffer, userId, callback){
 
     //Obtenermos el cliente de kurento.
     getKurentoClient(function(error, _kurentoClient){
+        
+        kurentoClient = _kurentoClient;
         
         //Verificamos si existe algun error
         if(error){
@@ -379,6 +369,36 @@ function startPresenter(sessionId, wss, sdpOffer, userId, callback){
                     callback(null, sdpAnswer);
                 });
 
+                /*let file_uri = PATH + generateKeyWord() + generateDateString() + FORMAT_VIDEO;
+                console.log("file_uri", file_uri);
+                pipeline.create("RecorderEndpoint", {uri : file_uri}, function(error, recorder){
+                    if(error){
+                        console.log("error al crear el endPoint...");
+                        return callback(error);
+                    }
+                    
+                    if(presenter === null){
+                        stopTransmission(sessionId, null);
+                        return callback(noPresentTransmission)
+                    }
+
+                    presenter.recorder = recorder;
+                    webRtcEndpoint.connect(recorder, function(error){
+                        if(error){
+                            console.log("error al conectar el endPoint...");
+                            return callback(error);
+                        }
+                    });
+
+                    recorder.record(function(error) {
+                        if(error){
+                            console.log("error al en recording...");
+                            return callback(error);
+                        }
+                        console.log("recording");
+                    });
+                });*/
+
                 //Verificamos, errores
                 webRtcEndpoint.gatherCandidates(function(error){
                     if (error){
@@ -387,6 +407,7 @@ function startPresenter(sessionId, wss, sdpOffer, userId, callback){
                     }
                 });
             });
+
         });
     });
 }
@@ -482,9 +503,6 @@ function stopTransmission(sessionId, idOwnerTrans){
     console.log("Id a detener", presenters);
     var sessionViewers = [];
     if (viewers.length < 1 && presenters.length === 1) {
-        //presenters[0].ws.send(JSON.stringify({
-          //  keyWord : 'stopCommunication'
-        //}));
         presenters = [];
 		console.log('Closing kurento client');
 		if(kurentoClient !== null){
@@ -510,6 +528,7 @@ function stopTransmission(sessionId, idOwnerTrans){
 				}));
 			}
 		}
+        presenter.recorder.stop();
         presenter.pipeline.release();
         //presenter.ws.send(JSON.stringify({
           //  keyWord : 'stopCommunication'
@@ -630,3 +649,44 @@ function deleteViewers(viewersDel){
         console.error("Erro en el proceso de eliminar viewer", err)
     }
 }
+
+
+/*************************************************************/
+ /*                    Métodos extras                         */   
+ /*************************************************************/
+
+/**
+ * Permite generar una clave unica, para identificadores de la transmicion o grabaciones.
+ */
+function generateKeyWord(){
+
+    //Diccionario
+    var letters = new Array('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 
+                            'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '1', '2', '3', '4',
+                            '5', '6', '7', '8', '9', '0');
+    var keyWord = ''
+    for (var i = 0; i< 10; i++){
+        keyWord += letters[Math.floor(Math.random() * letters.length)];
+    }
+    console.log(" keyWord..", keyWord)
+    return keyWord;
+}
+
+/**
+ * Genera un string de la fecha actual.
+ */
+function generateDateString(){
+    
+    var d = new Date(),
+    n = d.getTime(),
+    day = d.getDay(),
+    month = d.getMonth(),
+    year = d.getYear(),
+    formatDate = String(day) + String(month) + String(year) + String(n);
+    return formatDate;
+}
+
+
+
+
+
